@@ -1,0 +1,78 @@
+In Kubernetes, a taint on a node repels pods unless the pod has a matching toleration. The effect controls how strongly the scheduler/runtime enforces that repulsion.
+1) NoSchedule
+
+Meaning: Hard block for new pods.
+Behavior: The scheduler will not place a pod on the node unless the pod tolerates the taint.
+What it does not do: It doesn’t evict pods that are already running on that node.
+When to use: Reserve nodes for specific workloads (e.g., GPU nodes, dedicated team nodes).
+
+2) PreferNoSchedule
+
+Meaning: Soft block (best-effort).
+Behavior: The scheduler will try to avoid placing pods there, but may still schedule pods onto the node if it can’t find a better option (resource pressure, constraints, etc.).
+What it does not do: It doesn’t evict existing pods.
+When to use: “Keep off this node if possible” (e.g., nodes under maintenance observation, less-preferred capacity).
+
+3) NoExecute
+
+Meaning: Hard block + eviction.
+Behavior:
+
+New pods: won’t be scheduled unless they tolerate the taint.
+Existing pods: get evicted if they don’t tolerate it.
+
+
+Extra nuance: A pod toleration can include tolerationSeconds to stay temporarily before eviction (useful for brief node issues).
+When to use: Enforce rapid removal from nodes (e.g., node not-ready scenarios, dedicated nodes where non-tolerating pods must be cleared).
+
+Rule of thumb:
+
+Need strict placement control → NoSchedule
+Prefer avoidance but allow exceptions → PreferNoSchedule
+Need to kick pods off nodes too → NoExecute
+
+These phrases come from Kubernetes affinity/anti-affinity docs (nodeAffinity and podAffinity/podAntiAffinity). They describe two dimensions:
+
+Hard vs soft rule
+
+
+required... = hard requirement (must be met)
+preferred... = soft preference (try best, but can violate)
+
+
+When it is enforced
+
+
+DuringScheduling... = enforced when the pod is being scheduled
+...DuringExecution vs ...RequiredDuringExecution = what happens later if the world changes (labels change, node labels change, etc.)
+
+Available (implemented today)
+requiredDuringSchedulingIgnoredDuringExecution
+
+Hard at scheduling time: pod will schedule only onto nodes/pods that match.
+Ignored during execution: if labels change after it’s running, Kubernetes does not evict the pod.
+
+Example meaning: “Place this pod only on nodes with disktype=ssd; if the node label changes later, don’t move it.”
+preferredDuringSchedulingIgnoredDuringExecution
+
+Soft at scheduling time: scheduler will try to match (using weights), but can place it elsewhere.
+Ignored during execution: no eviction later if things change.
+
+Example meaning: “Prefer nodes in zone=us-east-1a, but run anywhere if needed.”
+Planned (not generally available as a built-in enforcement)
+These appear in older design discussions/docs as “Planned”:
+requiredDuringSchedulingRequiredDuringExecution (planned)
+
+Hard at scheduling time and would remain hard during runtime:
+If the rule becomes false later, the pod would be evicted/relocated to re-satisfy the rule.
+
+preferredDuringSchedulingRequiredDuringExecution (planned)
+
+Soft preference at scheduling time, but would be enforced during runtime in some way (e.g., try to move pods to satisfy preference as conditions change).
+
+Practical “so what” (how people handle runtime enforcement today)
+Kubernetes generally doesn’t evict pods just because affinity stops matching (that’s the “IgnoredDuringExecution” part). If you need runtime enforcement, common patterns are:
+
+Taints + NoExecute (to evict non-tolerating pods)
+Descheduler (an add-on that can evict pods to rebalance/re-satisfy policies)
+Policy + automation (controllers/operators) depending on platform
