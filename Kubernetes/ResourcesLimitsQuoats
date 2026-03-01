@@ -1,0 +1,130 @@
+Kubernetes QoS (Quality of Service) classes determine which Pods are evicted first when a node is under resource pressure (most commonly memory pressure, but also disk/ephemeral-storage pressure). QoS is computed per Pod from the requests/limits across all its containers.
+QoS classes (how they’re assigned)
+
+1) Guaranteed (most protected)
+A Pod is Guaranteed if every container has both CPU and memory requests and limits, and for each container request == limit (for CPU and for memory).
+resources:
+  requests: { cpu: "500m", memory: "512Mi" }
+  limits:   { cpu: "500m", memory: "512Mi" }
+
+2) Burstable (middle)
+A Pod is Burstable if it has some requests/limits set, but it does not meet Guaranteed (e.g., request != limit, or only memory set, etc.).
+resources:
+  requests: { cpu: "250m", memory: "512Mi" }
+  limits:   { cpu: "2",    memory: "2Gi" }
+
+3) BestEffort (least protected)
+A Pod is BestEffort if no container in the Pod sets any CPU/memory requests or limits.
+resources: {}
+
+Eviction behavior (what happens under pressure)
+Kubernetes’ kubelet eviction manager evicts Pods to protect the node. The general eviction preference is:
+BestEffort → Burstable → Guaranteed (evict left side first).
+Example: Memory pressure eviction on a node
+Imagine a node is running these Pods:
+
+Pod A (BestEffort): no requests/limits, currently using 800Mi
+Pod B (Burstable): request 512Mi, using 1.5Gi
+Pod C (Guaranteed): 512Mi request/limit, using 512Mi
+
+If the node hits a memory eviction threshold:
+
+Pod A is the first eviction candidate (BestEffort).
+If still pressured, Pod B is next (Burstable)—and within Burstable, Pods that are using more relative to their requests tend to be stronger candidates.
+Pod C (Guaranteed) is evicted last, unless pressure is severe enough that the node can’t recover otherwise.
+
+Important nuance: eviction vs OOMKill
+
+Eviction is kubelet proactively terminating Pods to relieve pressure; it records an eviction reason (e.g., Evicted).
+OOMKill happens when a container exceeds its memory limit (or the node kernel runs out of memory). QoS influences who gets killed first at the node level, but a container that exceeds its own limit can be OOMKilled regardless of QoS.
+
+Disk / ephemeral-storage pressure (often overlooked)
+QoS also matters for ephemeral-storage pressure if you set ephemeral-storage requests/limits. If you don’t, many workloads behave like “unbounded” from a disk perspective, increasing the chance of evictions when /var/lib/kubelet or imagefs fills up.
+Architect-level implications (how to use this)
+
+For critical services, aim for Guaranteed where feasible (especially for memory) to reduce eviction risk.
+Use Burstable intentionally for workloads that can tolerate disruption (workers, non-critical APIs) while still giving the scheduler solid signals via requests.
+Avoid BestEffort in shared production clusters; it’s the first to go during incidents.
+QoS is only one axis: PodPriority, PDBs, and replica counts strongly affect real-world disruption (e.g., a high-priority Burstable pod may outlive a low-priority Guaranteed pod depending on policy/config).
+
+
+          Eviction and OOMKilled are both “pod died due to resources,” but they originate from different controllers and look different operationally.
+
+
+
+Aspect
+Eviction (Evicted)
+OOMKilled (OOMKilled)
+
+
+
+
+Trigger
+Node-level pressure (memory, ephemeral-storage, PID, disk)
+Container exceeds its memory limit (or node kernel OOM)
+
+
+Who initiates
+kubelet eviction manager (proactive)
+Linux kernel OOM killer (reactive)
+
+
+Gracefulness
+Usually SIGTERM + grace period (PreStop can run)
+Typically SIGKILL (no cleanup; abrupt)
+
+
+Scope
+Chooses pods to remove to protect node
+Kills a process/container causing OOM
+
+
+Selection
+QoS + Priority influence who goes first (BestEffort → Burstable → Guaranteed)
+If it’s a cgroup limit OOM, it kills within that container’s cgroup regardless of QoS
+
+
+What you’ll see
+Pod status Failed, reason Evicted, message like “node had condition: [MemoryPressure]”
+Container last state reason OOMKilled, exit code often 137, restartCount increments
+
+
+PDB effect
+This is involuntary disruption; PDBs are not guaranteed to be honored
+Not a disruption budget concept; it’s a crash
+
+
+Real Kubernetes scenarios
+Scenario A: OOMKilled from a too-low memory limit (common)
+
+A Java service has limits.memory: 512Mi and experiences a traffic spike; heap + off-heap + native threads grow past 512Mi.
+The kernel kills the container process immediately; the pod stays on the node and gets restarted (CrashLoopBackOff if repeated).
+Symptom pattern: short uptime, Last State: OOMKilled, exit 137; logs may stop mid-line.
+
+Scenario B: Eviction from node memory pressure due to overcommit (common in shared clusters)
+
+Multiple Burstable workloads have low requests but collectively use far more memory than requested, pushing the node below memory.available thresholds.
+Kubelet evicts pods to recover, usually starting with BestEffort (e.g., a log shipper with no requests/limits), then Burstable offenders.
+Symptom pattern: several pods across namespaces suddenly show Evicted, often clustered on one node; rescheduling happens elsewhere if capacity exists.
+
+Scenario C: Eviction from ephemeral-storage pressure (often overlooked)
+
+A pod writes verbose logs to the container filesystem; node disk (or imagefs) fills up.
+Kubelet evicts one or more pods to free ephemeral storage and keep the node functional.
+Symptom pattern: Evicted with messages referencing ephemeral-storage, nodefs, or imagefs; repeated if log volume continues.
+
+Scenario D: “OOMKilled” even without a memory limit (node-level kernel OOM)
+
+A BestEffort pod (no limits) plus other workloads push the node into true OOM.
+The kernel kills processes based on OOM scoring; a container may show OOMKilled even though it had no limit.
+Symptom pattern: node instability, multiple pods impacted, possible node NotReady events; root cause is overall node memory exhaustion, not a single container limit.
+
+
+How to triage quickly (what to check)
+
+If many pods on one node die with Evicted, look for node pressure (memory/disk) and overcommit (requests too low).
+If one pod repeatedly dies with OOMKilled, it’s usually that workload’s memory limit (or a leak) and needs right-sizing/tuning.
+Architect fix patterns:
+
+OOMKilled: increase memory limit, reduce peak memory (heap sizing, caching), set request closer to steady-state, consider VPA recommendations.
+Evictions: increase requests (reduce overcommit), add capacity/scale nodes, apply LimitRange/Quotas, review noisy-neighbor workloads and eviction thresholds, set ephemeral-storage requests/limits for heavy writers.
