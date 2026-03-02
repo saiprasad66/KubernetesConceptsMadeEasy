@@ -1,0 +1,22 @@
+Admission Controllers:
+
+In Kubernetes, admission controllers are pieces of code that intercept requests to the Kubernetes API server after authentication and authorization but before the resource is persisted.
+They are essential for enforcing policies, mutating requests, and validating configurations to ensure the cluster operates as intended.
+
+kube-apiserver -h | grep enable-admission-plugins
+
+
+/etc/kubernetes/manifests
+
+
+--enable-admission-plugins
+--disbale-adminssion-plugins
+
+
+
+2 types:
+
+validating Adminssion controllers: can validate the request can allow or deny it
+mutataing : can change the request
+
+mutating invoves first & then validating 
