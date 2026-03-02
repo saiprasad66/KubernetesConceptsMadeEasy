@@ -1,0 +1,8 @@
+how to identify kubelet config file
+
+Run the command
+ps -aux | grep kubelet and identify the config file  #config=/var/lib/kubelet/config.yaml
+
+Then check in the config file for staticPodPath.
+
+
