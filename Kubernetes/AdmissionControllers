@@ -20,3 +20,33 @@ validating Adminssion controllers: can validate the request can allow or deny it
 mutataing : can change the request
 
 mutating invoves first & then validating 
+
+
+
+
+Edit /etc/kubernetes/manifests/kube-apiserver.yaml:
+
+cp /etc/kubernetes/manifests/kube-apiserver.yaml /opt/kube-apiserver.yaml.bak
+vi /etc/kubernetes/manifests/kube-apiserver.yaml
+1. Enable the admission plugin:
+
+    - --enable-admission-plugins=NodeRestriction,ImagePolicyWebhook
+2. Add the admission control config file:
+
+    - --admission-control-config-file=/etc/kubernetes/imgvalidation/admission-configuration.yaml
+3. Mount the imgvalidation directory:
+
+Add to volumes:
+
+    - name: imgvalidation
+      hostPath:
+        path: /etc/kubernetes/imgvalidation
+        type: Directory
+Add to volumeMounts:
+
+    - name: imgvalidation
+      mountPath: /etc/kubernetes/imgvalidation
+      readOnly: true
+4. Verify the API server is running:
+
+kubectl get pods -n kube-system
