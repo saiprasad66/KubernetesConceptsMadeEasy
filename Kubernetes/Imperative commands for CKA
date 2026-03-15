@@ -1,6 +1,13 @@
-see the status of the rollout by the below command: 
+##see the status of the rollout by the below command: 
 kubectl rollout status deployment/myapp-deployment
-To see the history and revisions:
+##To see the history and revisions:
 kubectl rollout history deployment/myapp-deployment
-update a deployment say for example for updating an image:
+##To undo a change in Deployment:
+kubectl rollout undo deployment/myapp-deployment
+##To Create Deployment: 
+kubectl create deployment myapp-deployment --image=niginx --replicas=3
+##update a deployment say for example for updating an image:
 kubectl set image deployment/myapp-deployment nginx=nginx:1.9.1
+##To Create config file
+kubectl create configmap app-config --from-literal=APP_COLOR=blue --from-literal=APP_MODE=prod
+kubectl create configmap app-config --from-file=app_config.properties (Another way)
