@@ -1,0 +1,24 @@
+VPA:
+It wont came by default we have to install on our cluster
+
+kubectl get pods -n kube-system | grep vpa
+
+we get 3 pods
+1.vpa-adminssion controller  : intervenes the pod creation process & uses recommendation by recommnder and mutattes the pod spec to apply the cpu amd memoery values at startup
+2.vpa-recommender: contiunously moniorting the resource usage form kubernetes metrics Api collect hostorial live date usage of pods & provides recommendes on optimal cpu & memeory values
+3.vpa-updater : it detects pods that are running the sunboptimal resources and evits them when an update needed it get recommends from recommender
+
+
+update policy Mode:
+
+off mode: only recommndeds does not  changes anything
+initial mode : only changes pods on new pod creation ( when new pods come up)
+Recreate: Evict pods if usgae goes beyond range
+Auto : currently works as recreate burt infuture to update spec details without evicting
+
+#To view recommendations
+kubectl describe vpa vpa_name 
+
+
+
+
