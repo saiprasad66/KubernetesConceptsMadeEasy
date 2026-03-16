@@ -21,3 +21,10 @@ etc/resolv.conf is dns servers where it find ip address of all machines
 
 if it has in both etc/hosts & etc/resolv.conf then it will take etc/host entry but that can changed /etc/nsswitch.conf
 
+
+ip netns # list n/w namespace
+ip netns add name ## it create new namespace
+
+ip netns exec red ip  link or ip link -n red # to see
+ip route -n red
+
