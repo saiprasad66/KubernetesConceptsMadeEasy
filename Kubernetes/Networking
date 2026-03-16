@@ -1,0 +1,23 @@
+# to list & modify interfaces on host
+ip link
+
+## to view ip address to those interfaces
+ip addr
+
+
+## To set ip address to interfaces
+ip addr add 192.168.1.10/24 dev etho
+
+ip route
+
+ip route add 192.168.1.0/24 via 192.168.2.1
+
+cat /proc/sys/net/ipv4-forward
+
+DNS:
+
+etc/hosts is single source of truth
+etc/resolv.conf is dns servers where it find ip address of all machines
+
+if it has in both etc/hosts & etc/resolv.conf then it will take etc/host entry but that can changed /etc/nsswitch.conf
+
