@@ -59,3 +59,13 @@ ARP and Routing Table
 ##CNI comes with the set of supported network plugins.
 $ ls /opt/cni/bin
 
+
+##To see which port kube scheduler is runinng
+
+netstat -anp | grep -i kube-scheduler
+
+##to see whcih port has more active connections
+
+netstat -anp | grep etcd | grep 2379 | wc -l
+
+
