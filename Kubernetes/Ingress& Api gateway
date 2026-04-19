@@ -1,1 +1,20 @@
 Ingress Controller ---config map ---svc- Auth
+
+
+Drawbacks of Ingress:
+Limited Specification: The standard Ingress specification is very basic; it primarily handles service exposure and path-based routing 
+It lacks native support for production-grade features like rate limiting, canary deployments, Web Application Firewalls (WAF), and URL rewrites. 
+To compensate, controllers rely on complex, non-standard annotations that differ between vendors (e.g., Nginx vs. ALB), leading to steep learning curves and poor maintainability.
+
+Lack of Role Separation: In many organizations, platform teams (managing the controller) and application teams (managing the service routing) share the same Ingress resource. 
+This lack of access control often results in accidental misconfigurations where one team might interfere with the other's settings.
+
+How Gateway API Solves These Problems ?
+The Gateway API introduces a more expressive and role-oriented design using three specific Custom Resource Definitions (CRDs):
+
+GatewayClass : Managed by platform engineers, this defines the type of gateway controller being used (e.g., Envoy).
+Gateway : Also managed by the infrastructure team, this resource acts as the entry point and configures the listener (port/protocol) for the load balancer
+HTTPRoute (18:21): Managed by application teams, this is where the actual routing logic lives. It natively supports advanced features—like weight-based traffic splitting and 
+                  URL rewrites—without needing complex annotations, making the configuration more readable and consistent.
+By splitting these concerns, the Gateway API provides a clear separation of duties and a standardized, 
+extensible framework for modern traffic management in Kubernetes.
