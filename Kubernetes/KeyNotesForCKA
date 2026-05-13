@@ -23,5 +23,22 @@ cat /etc/kubernetes/kubelet.conf
 # view the certificate using openssl. Get the certificate file location from the 'kubelet.conf' file above. 
 openssl x509 -in /var/lib/kubelet/pki/kubelet-client-current.pem -text -noout
 
+###Mental checklist for Service connectivity failures:
+
+kubectl get pods — are pods actually Running ?
+kubectl logs / kubectl exec ... curl localhost:<port> — is the app healthy inside the container?
+kubectl get endpoints <svc> — does the selector match any pods?
+kubectl get svc -o yaml — does targetPort match the port the app listens on?
+Fix the mismatch and re-test from a client pod.
+
+
+####Mental checklist for node scheduling failures:
+
+kubectl get nodes — is the node Ready ?
+kubectl describe node <name> — check Conditions and Events for root cause
+SSH to the node → sudo systemctl status kubelet
+Read kubelet logs: sudo journalctl -u kubelet
+Check scheduling events: kubectl get events -n <namespace>
+
 
 
