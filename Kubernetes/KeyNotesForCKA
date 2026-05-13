@@ -11,4 +11,17 @@ admin.conf references the CA and client cert/key, letting kubectl authenticate.
 Next time you troubleshoot API server issues, remember:
 Check PKI before you panic.
 
+##List the services on your Linux operating system that are associated with Kubernetes. 
+sudo systemctl list-unit-files --type service --all | grep kube
+##list all kubernetes api resources
+kubectl api-resources
+
+##view the client certificate that the kubelet uses to authenticate to the Kubernetes API
+
+cat /etc/kubernetes/kubelet.conf 
+
+# view the certificate using openssl. Get the certificate file location from the 'kubelet.conf' file above. 
+openssl x509 -in /var/lib/kubelet/pki/kubelet-client-current.pem -text -noout
+
+
 
