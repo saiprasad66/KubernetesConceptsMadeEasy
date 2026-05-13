@@ -1,0 +1,14 @@
+Kubectl top node node01
+##to show the metrics for a pod and it's containers
+kubectl top pod php-apache --containers
+##If you are running a lot of pods, and want to quickly determine which pods are consuming the most CPU, run the command 
+kubectl  top pod --sort-by=cpu
+
+/etc/kubernetes/pki contains the crown jewels of a kubeadm control plane’s security.
+Certificates and keys here allow the API server, controller-manager, scheduler, and kubelet to trust and talk to each other.
+The API server is a static Pod; kubelet continuously tries to restart it if something goes wrong.
+admin.conf references the CA and client cert/key, letting kubectl authenticate.
+Next time you troubleshoot API server issues, remember:
+Check PKI before you panic.
+
+
