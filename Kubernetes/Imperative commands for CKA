@@ -26,3 +26,6 @@ kubectl create secret generic app-secret --from-file=app_secret.properties
 kubectl  autoscale deployment deployment_name --cpu-percent=50 --min=1 --max=10
 
 ##To create VPA
+
+
+kubectl create priorityclass high-priority --value=1000000
