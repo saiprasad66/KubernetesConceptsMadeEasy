@@ -4,6 +4,9 @@ kubectl top pod php-apache --containers
 ##If you are running a lot of pods, and want to quickly determine which pods are consuming the most CPU, run the command 
 kubectl  top pod --sort-by=cpu
 
+#Check the scheduling events for more detail:
+kubectl get events -n trouble-node-01 --sort-by='.lastTimestamp'
+
 /etc/kubernetes/pki contains the crown jewels of a kubeadm control plane’s security.
 Certificates and keys here allow the API server, controller-manager, scheduler, and kubelet to trust and talk to each other.
 The API server is a static Pod; kubelet continuously tries to restart it if something goes wrong.
