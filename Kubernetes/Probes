@@ -1,0 +1,85 @@
+In Kubernetes, Liveness Probe and Readiness Probe Startup Probe are health checks used to manage container lifecycle and traffic routing. They serve different purposes:
+
+🔹 Liveness Probe (Is the app alive?)
+✅ Purpose:
+Checks whether the application inside the container is still running properly.
+🔁 What happens if it fails:
+Kubernetes restarts the container.
+
+🧠 Use case:
+App is stuck or deadlocked
+Memory leak causing unresponsiveness
+Infinite loop or crash scenario
+
+Example:
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 5
+
+
+🔹 Readiness Probe (Is the app ready?)
+✅ Purpose:
+Checks whether the application is ready to serve traffic.
+🔁 What happens if it fails:
+Kubernetes removes the pod from the service/load balancer
+No restart happens
+
+🧠 Use case:
+App is still starting up
+Waiting for DB or external service
+Under heavy load and temporarily unable to serve requests
+
+Example:
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 3
+
+🔹 Startup Probe (Kubernetes)
+✅ Purpose:
+A Startup Probe is used to determine whether a containerized application has successfully started.
+
+It is especially useful for slow-starting applications.
+It delays the activation of liveness and readiness probes until the app is fully initialized.
+
+🔁 What happens if it fails:
+
+Kubernetes will restart the container, just like a liveness probe.
+It keeps retrying until the app starts successfully.
+
+🧠 Why Startup Probe is Needed
+Without a startup probe:
+
+Liveness probe might kill the container too early
+Happens when apps take long time to initialize (e.g., large JVM apps, ML models, DB connections)
+
+👉 Startup probe protects your app during boot time
+
+Example:
+startupProbe:
+  httpGet:
+    path: /startup
+    port: 8080
+  failureThreshold: 30
+  periodSeconds: 10
+
+
+🔄 How It Works with Other Probes
+Startup Probe runs first
+Until it succeeds:
+❌ Liveness probe is disabled
+❌ Readiness probe is disabled
+
+Once it succeeds:
+✅ Liveness probe starts
+✅ Readiness probe starts
+
+🧠 Simple Analogy
+Startup Probe → "Have you woken up?" 🌅
+Liveness Probe → "Are you alive?" 🫀
+Readiness Probe → "Can you work right now?" 💼
